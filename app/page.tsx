@@ -4,6 +4,7 @@ import FileUploader from '../components/FileUploader';
 import ReportSummary from '../components/ReportSummary';
 import PieChartView from '../components/PieChartView';
 import QuantileView from '../components/QuantileView';
+import TimelineChart from '../components/TimelineChart';
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 
@@ -60,6 +61,11 @@ export default function Home() {
   
   // Get the active report data
   const activeReport = reports.length > 0 ? reports[activeReportIndex] : null;
+
+  // Prepare timeline data for the active report
+  const timelineData = activeReport?.data
+    ?.filter(row => row.timestamp && !isNaN(Number(row.timestamp)) && row.coins !== undefined)
+    .map(row => ({ timestamp: Number(row.timestamp), coins: Number(row.coins) })) ?? [];
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-3xl">
@@ -133,6 +139,7 @@ export default function Home() {
                 <ReportSummary data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 <PieChartView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 <QuantileView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
+                {timelineData.length > 0 && <TimelineChart data={timelineData} />}
               </div>
             </Card>
           )}

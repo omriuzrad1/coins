@@ -51,6 +51,7 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
           'coins': ['coins', 'coin', 'amount', 'value'],
           'action': ['action', 'type', 'event', 'actiontype']
         };
+        const timestampAlternatives = ['timestamp', 'time', 'created', 'createdat', 'created_at', 'ts'];
         let json: any[];
         if (ext === "csv") {
           const text = new TextDecoder().decode(data);
@@ -78,11 +79,13 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
           const pkIndex = keyAlternatives['pk'].find(alt => headerMap[normalizeKey(alt)] !== undefined) || 'pk';
           const coinsIndex = keyAlternatives['coins'].find(alt => headerMap[normalizeKey(alt)] !== undefined) || 'coins';
           const actionIndex = keyAlternatives['action'].find(alt => headerMap[normalizeKey(alt)] !== undefined) || 'action';
+          const timestampIndex = timestampAlternatives.find(alt => headerMap[normalizeKey(alt)] !== undefined);
           
           // Pre-compute these values outside the loop
           const pkColIndex = headerMap[normalizeKey(pkIndex)];
           const coinsColIndex = headerMap[normalizeKey(coinsIndex)];
           const actionColIndex = headerMap[normalizeKey(actionIndex)];
+          const timestampColIndex = timestampIndex ? headerMap[normalizeKey(timestampIndex)] : undefined;
           
           // Process in chunks for large files
           const CHUNK_SIZE = 10000; // Process 10,000 rows at a time
@@ -96,6 +99,7 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
                 pk: values[pkColIndex]?.trim() || '',
                 coins: values[coinsColIndex]?.trim() || '',
                 action: values[actionColIndex]?.trim() || '',
+                timestamp: timestampColIndex !== undefined ? values[timestampColIndex]?.trim() || '' : '',
               };
             });
             json.push(...processedChunk);
@@ -117,11 +121,16 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
                   break;
                 }
               }
+              // Handle timestamp alternatives
+              if (timestampAlternatives.includes(nk)) {
+                mapped['timestamp'] = row[k];
+              }
             });
             return {
               pk: mapped['pk'] ?? '',
               coins: mapped['coins'] ?? '',
               action: mapped['action'] ?? '',
+              timestamp: mapped['timestamp'] ?? '',
             };
           });
           // Check for required fields in headers
@@ -150,6 +159,7 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
             coins: Number(row.coins) || 0, // Use || 0 to handle NaN
             pk: String(row.pk || ''),
             action: String(row.action || ''),
+            timestamp: row.timestamp ? Number(row.timestamp) : undefined,
           }));
           normalizedJson.push(...normalizedChunk);
         }
