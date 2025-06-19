@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 
 type ReportSummaryProps = {
   data: { pk: string; coins: number; action: string }[];
+  showWelcomeBonus: boolean;
 };
 
 // Map of action codes to user-friendly names
@@ -16,17 +17,22 @@ const getFriendlyActionName = (action: string): string => {
   return actionLabels[action] || action; // Use the mapping or the original if not found
 };
 
-export default function ReportSummary({ data }: ReportSummaryProps) {
+export default function ReportSummary({ data, showWelcomeBonus }: ReportSummaryProps) {
+  // Filter out welcome bonus data if needed
+  const filteredData = showWelcomeBonus 
+    ? data 
+    : data.filter(row => row.action !== 'redeem_bonus');
+  
   // Calculate total unique users and total coins
-  const uniqueUsers = new Set(data.map((row) => row.pk)).size;
-  const totalCoins = data.reduce((sum, row) => sum + (Number(row.coins) || 0), 0);
+  const uniqueUsers = new Set(filteredData.map((row) => row.pk)).size;
+  const totalCoins = filteredData.reduce((sum, row) => sum + (Number(row.coins) || 0), 0);
   
   // Calculate average coins per unique user
   const averageCoinsPerUser = uniqueUsers > 0 ? Math.round((totalCoins / uniqueUsers) * 100) / 100 : 0;
   
   // Group data by action
   const actionGroups: Record<string, { pk: string; coins: number; action: string }[]> = {};
-  data.forEach(row => {
+  filteredData.forEach(row => {
     if (!actionGroups[row.action]) {
       actionGroups[row.action] = [];
     }
