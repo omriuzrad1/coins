@@ -69,7 +69,7 @@ export default function Home() {
       if (!showWelcomeBonus && row.action === 'redeem_bonus') return false;
       return true;
     })
-    .map(row => ({ timestamp: Number(row.timestamp), coins: Number(row.coins) })) ?? [];
+    .map(row => ({ timestamp: Number(row.timestamp), coins: Number(row.coins), action: row.action })) ?? [];
 
 
   return (
