@@ -64,8 +64,13 @@ export default function Home() {
 
   // Prepare timeline data for the active report
   const timelineData = activeReport?.data
-    ?.filter(row => row.timestamp && !isNaN(Number(row.timestamp)) && row.coins !== undefined)
+    ?.filter(row => {
+      if (!row.timestamp || isNaN(Number(row.timestamp)) || row.coins === undefined) return false;
+      if (!showWelcomeBonus && row.action === 'redeem_bonus') return false;
+      return true;
+    })
     .map(row => ({ timestamp: Number(row.timestamp), coins: Number(row.coins) })) ?? [];
+
 
   return (
     <main className="container mx-auto px-4 py-8 max-w-3xl">
