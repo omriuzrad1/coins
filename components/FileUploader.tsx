@@ -47,7 +47,7 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
         const requiredKeys = ['pk', 'coins', 'action'] as const;
         type RequiredKey = typeof requiredKeys[number];
         const keyAlternatives: Record<RequiredKey, string[]> = {
-          'pk': ['pk', 'id', 'userid', 'user_id', 'sk'], // Add 'sk' as alternative for 'pk'
+          'pk': ['pk', 'id', 'userid', 'user_id', 'user', 'sk'],
           'coins': ['coins', 'coin', 'amount', 'value'],
           'action': ['action', 'type', 'event', 'actiontype']
         };
