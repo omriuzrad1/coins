@@ -4,6 +4,8 @@ type ReportSummaryProps = {
   data: { pk: string; coins: number; action: string }[];
   showWelcomeBonus: boolean;
   countries?: string[];
+  sources?: { name: string; originalIndex: number }[];
+  onCountryClick?: (index: number) => void;
 };
 
 // Map of action codes to user-friendly names
@@ -18,7 +20,7 @@ const getFriendlyActionName = (action: string): string => {
   return actionLabels[action] || action; // Use the mapping or the original if not found
 };
 
-export default function ReportSummary({ data, showWelcomeBonus, countries }: ReportSummaryProps) {
+export default function ReportSummary({ data, showWelcomeBonus, countries, sources, onCountryClick }: ReportSummaryProps) {
   // Filter out welcome bonus data if needed
   const filteredData = showWelcomeBonus 
     ? data 
@@ -57,7 +59,22 @@ export default function ReportSummary({ data, showWelcomeBonus, countries }: Rep
 
   return (
     <div className="space-y-6">
-      {countries && countries.length > 0 && (
+      {/* If sources are provided, render clickable country list */}
+      {sources && sources.length > 0 && onCountryClick ? (
+        <div className="mb-4 p-3 bg-blue-50 rounded text-blue-900 text-sm">
+          <span className="font-semibold">Countries:</span>{' '}
+          {sources.map((src, i) => (
+            <button
+              key={src.originalIndex}
+              className="underline text-blue-700 hover:text-blue-900 mx-1"
+              onClick={() => onCountryClick(src.originalIndex)}
+              type="button"
+            >
+              {src.name}
+            </button>
+          ))}
+        </div>
+      ) : countries && countries.length > 0 && (
         <div className="mb-4 p-3 bg-blue-50 rounded text-blue-900 text-sm">
           <span className="font-semibold">Countries:</span> {countries.join(', ')}
         </div>

@@ -13,9 +13,13 @@ type Report = {
   fileName: string;
   data: any[];
   countries?: string[];
+  sources?: { name: string; originalIndex: number }[];
+  isSummary?: boolean;
 };
 
 export default function Home() {
+  // Track hidden tab indices
+  const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
   // State for multiple reports
   const [reports, setReports] = useState<Report[]>([]);
   const [activeReportIndex, setActiveReportIndex] = useState<number>(0);
@@ -60,19 +64,24 @@ export default function Home() {
     };
     const tabNames = reports.map(r => r.fileName);
     const commonPrefix = getCommonPrefix(tabNames);
-    // Remove trailing spaces from prefix
     const trimmedPrefix = commonPrefix.replace(/\s+$/, '');
-    // Get suffixes (countries)
     const countries = tabNames.map(name => name.slice(trimmedPrefix.length).trim()).filter(Boolean);
+
+    // Store sources (name=country/region suffix, originalIndex) for summary
+    const sources = tabNames.map((name, idx) => ({ name: name.slice(trimmedPrefix.length).trim(), originalIndex: idx }));
+
+    // Hide all original tabs
+    setHiddenIndices(new Set(sources.map(s => s.originalIndex)));
 
     // Create a new summary report
     const summaryReport = {
       fileName: trimmedPrefix || "Combined Summary",
       data: combinedData,
-      countries
+      countries,
+      sources,
+      isSummary: true
     };
 
-    // Add the summary report to the reports array and set it as active
     setReports(prevReports => {
       const newReports = [...prevReports, summaryReport];
       setActiveReportIndex(newReports.length - 1);
@@ -94,6 +103,16 @@ export default function Home() {
     .map(row => ({ timestamp: Number(row.timestamp), coins: Number(row.coins), action: row.action })) ?? [];
 
 
+  // Handler to unhide a report tab by index
+  const handleShowReport = (index: number) => {
+    setHiddenIndices(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(index);
+      return newSet;
+    });
+    setActiveReportIndex(index);
+  };
+
   return (
     <main className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold mb-8 text-center">CoinsDash</h1>
@@ -109,17 +128,19 @@ export default function Home() {
           <div className="mt-6 flex flex-wrap gap-2 items-center justify-between">
             <div className="flex flex-wrap gap-2">
             {reports.map((report, index) => (
-              <button
-                key={index}
-                onClick={() => setActiveReportIndex(index)}
-                className={`px-4 py-2 rounded-t-lg transition-colors ${
-                  index === activeReportIndex
-                    ? 'bg-white text-blue-600 border border-gray-300 border-b-0 font-medium'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {report.fileName}
-              </button>
+              (hiddenIndices.has(index) && !report.isSummary) ? null : (
+                <button
+                  key={index}
+                  onClick={() => setActiveReportIndex(index)}
+                  className={`px-4 py-2 rounded-t-lg transition-colors ${
+                    index === activeReportIndex
+                      ? 'bg-white text-blue-600 border border-gray-300 border-b-0 font-medium'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {report.fileName}
+                </button>
+              )
             ))}
             </div>
             
@@ -163,7 +184,13 @@ export default function Home() {
                 </label>
               </div>
               <div className="grid gap-6">
-                <ReportSummary data={activeReport.data} showWelcomeBonus={showWelcomeBonus} countries={activeReport.countries} />
+                <ReportSummary 
+                  data={activeReport.data} 
+                  showWelcomeBonus={showWelcomeBonus} 
+                  countries={activeReport.countries}
+                  sources={activeReport.sources}
+                  onCountryClick={handleShowReport}
+                />
                 <PieChartView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 <QuantileView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 {timelineData.length > 0 && <TimelineChart data={timelineData} />}
