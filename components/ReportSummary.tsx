@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 type ReportSummaryProps = {
   data: { pk: string; coins: number; action: string }[];
   showWelcomeBonus: boolean;
+  countries?: string[];
 };
 
 // Map of action codes to user-friendly names
@@ -17,7 +18,7 @@ const getFriendlyActionName = (action: string): string => {
   return actionLabels[action] || action; // Use the mapping or the original if not found
 };
 
-export default function ReportSummary({ data, showWelcomeBonus }: ReportSummaryProps) {
+export default function ReportSummary({ data, showWelcomeBonus, countries }: ReportSummaryProps) {
   // Filter out welcome bonus data if needed
   const filteredData = showWelcomeBonus 
     ? data 
@@ -56,6 +57,11 @@ export default function ReportSummary({ data, showWelcomeBonus }: ReportSummaryP
 
   return (
     <div className="space-y-6">
+      {countries && countries.length > 0 && (
+        <div className="mb-4 p-3 bg-blue-50 rounded text-blue-900 text-sm">
+          <span className="font-semibold">Countries:</span> {countries.join(', ')}
+        </div>
+      )}
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <Card className="p-6 rounded-xl shadow bg-white flex flex-col items-center">

@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 type Report = {
   fileName: string;
   data: any[];
+  countries?: string[];
 };
 
 export default function Home() {
@@ -41,16 +42,36 @@ export default function Home() {
   // Generate a summary report from all loaded reports
   const handleGenerateSummary = () => {
     if (reports.length < 2) return;
-    
+
     // Combine data from all reports
     const combinedData = reports.flatMap(report => report.data);
-    
+
+    // Find the longest common prefix among all tab names
+    const getCommonPrefix = (strings: string[]) => {
+      if (!strings.length) return '';
+      let prefix = strings[0];
+      for (let i = 1; i < strings.length; i++) {
+        while (strings[i].indexOf(prefix) !== 0 && prefix.length > 0) {
+          prefix = prefix.slice(0, -1);
+        }
+        if (prefix === '') break;
+      }
+      return prefix.trim();
+    };
+    const tabNames = reports.map(r => r.fileName);
+    const commonPrefix = getCommonPrefix(tabNames);
+    // Remove trailing spaces from prefix
+    const trimmedPrefix = commonPrefix.replace(/\s+$/, '');
+    // Get suffixes (countries)
+    const countries = tabNames.map(name => name.slice(trimmedPrefix.length).trim()).filter(Boolean);
+
     // Create a new summary report
     const summaryReport = {
-      fileName: "Combined Summary",
-      data: combinedData
+      fileName: trimmedPrefix || "Combined Summary",
+      data: combinedData,
+      countries
     };
-    
+
     // Add the summary report to the reports array and set it as active
     setReports(prevReports => {
       const newReports = [...prevReports, summaryReport];
@@ -58,6 +79,7 @@ export default function Home() {
       return newReports;
     });
   };
+
   
   // Get the active report data
   const activeReport = reports.length > 0 ? reports[activeReportIndex] : null;
@@ -141,7 +163,7 @@ export default function Home() {
                 </label>
               </div>
               <div className="grid gap-6">
-                <ReportSummary data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
+                <ReportSummary data={activeReport.data} showWelcomeBonus={showWelcomeBonus} countries={activeReport.countries} />
                 <PieChartView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 <QuantileView data={activeReport.data} showWelcomeBonus={showWelcomeBonus} />
                 {timelineData.length > 0 && <TimelineChart data={timelineData} />}
