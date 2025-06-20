@@ -32,6 +32,14 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
         
         // Clean up filename if it contains "balance-table"
         let displayName = fileName;
+        // New: If fileName starts with a letter, use all chars up to the first digit as tab name
+        if (/^[A-Za-z]/.test(fileName)) {
+          const match = fileName.match(/^[^0-9]*/);
+          if (match) {
+            // Remove trailing underscores or non-letter chars
+            displayName = match[0].replace(/[_\W]+$/, '');
+          }
+        }
         const balanceTableIndex = fileName.indexOf("balance-table");
         if (balanceTableIndex !== -1) {
           // Extract the part after "balance-table"
