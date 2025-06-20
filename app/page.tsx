@@ -16,6 +16,7 @@ type Report = {
   sources?: { name: string; originalIndex: number }[];
   isSummary?: boolean;
   partOfSummary?: boolean;
+  usedInSummary?: boolean;
 };
 
 export default function Home() {
@@ -46,10 +47,14 @@ export default function Home() {
 
   // Generate a summary report from all loaded reports
   const handleGenerateSummary = () => {
-    if (reports.length < 2) return;
+    // Only include reports not yet used in a summary
+    const availableReports = reports
+      .map((r, i) => ({ ...r, _idx: i }))
+      .filter(r => !r.usedInSummary && !r.isSummary);
+    if (availableReports.length < 2) return;
 
-    // Combine data from all reports
-    const combinedData = reports.flatMap(report => report.data);
+    // Combine data from available reports
+    const combinedData = availableReports.flatMap(report => report.data);
 
     // Find the longest common prefix among all tab names
     const getCommonPrefix = (strings: string[]) => {
@@ -63,20 +68,27 @@ export default function Home() {
       }
       return prefix.trim();
     };
-    const tabNames = reports.map(r => r.fileName);
+    const tabNames = availableReports.map(r => r.fileName);
     const commonPrefix = getCommonPrefix(tabNames);
     const trimmedPrefix = commonPrefix.replace(/\s+$/, '');
     const countries = tabNames.map(name => name.slice(trimmedPrefix.length).trim()).filter(Boolean);
-
     // Store sources (name=country/region suffix, originalIndex) for summary
-    const sources = tabNames.map((name, idx) => ({ name: name.slice(trimmedPrefix.length).trim(), originalIndex: idx }));
+    const sources = availableReports.map((r, idx) => ({ name: tabNames[idx].slice(trimmedPrefix.length).trim(), originalIndex: r._idx }));
 
     // Hide all original tabs
-    setHiddenIndices(new Set(sources.map(s => s.originalIndex)));
+    setHiddenIndices(prev => {
+      const newSet = new Set(prev);
+      sources.forEach(s => newSet.add(s.originalIndex));
+      return newSet;
+    });
 
-    // Mark all source reports as partOfSummary
+    // Mark all source reports as partOfSummary and usedInSummary
     setReports(prevReports => {
-      const newReports = prevReports.map((r, i) => sources.some(s => s.originalIndex === i) ? { ...r, partOfSummary: true } : r);
+      const newReports = prevReports.map((r, i) =>
+        sources.some(s => s.originalIndex === i)
+          ? { ...r, partOfSummary: true, usedInSummary: true }
+          : r
+      );
       // Create a new summary report
       const summaryReport = {
         fileName: trimmedPrefix || "Combined Summary",
@@ -90,6 +102,7 @@ export default function Home() {
       return finalReports;
     });
   };
+
 
   
   // Get the active report data
