@@ -15,11 +15,15 @@ type Report = {
   countries?: string[];
   sources?: { name: string; originalIndex: number }[];
   isSummary?: boolean;
+  isMetaSummary?: boolean;
   partOfSummary?: boolean;
   usedInSummary?: boolean;
+  usedInMetaSummary?: boolean;
 };
 
 export default function Home() {
+  // State for selecting summaries to combine
+  const [selectedSummaries, setSelectedSummaries] = useState<number[]>([]);
   // Track hidden tab indices
   const [hiddenIndices, setHiddenIndices] = useState<Set<number>>(new Set());
   // State for multiple reports
@@ -145,6 +149,46 @@ export default function Home() {
     });
   };
 
+  // Handler for toggling summary selection
+  const handleToggleSummarySelection = (idx: number) => {
+    setSelectedSummaries((prev) =>
+      prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
+    );
+  };
+
+  // Handler to generate meta-summary (combined summary of summaries)
+  const handleGenerateMetaSummary = () => {
+    // Find all summaries not yet used in a meta-summary
+    const summaries = reports
+      .map((r, i) => ({ ...r, _idx: i }))
+      .filter(r => r.isSummary && !r.isMetaSummary && !r.usedInMetaSummary && selectedSummaries.includes(r._idx));
+    if (summaries.length < 2) return;
+    const combinedData = summaries.flatMap(r => r.data);
+    const sources = summaries.map((r) => ({ name: r.fileName, originalIndex: r._idx }));
+    // Only keep the selected summaries and the new meta-summary
+    setReports(prev => {
+      const metaSummary = {
+        fileName: 'Combined Overall Summary',
+        data: combinedData,
+        isSummary: true,
+        isMetaSummary: true,
+        sources,
+      };
+      // Mark usedInMetaSummary on all selected summaries
+      const updated = prev.map((r, i) =>
+        sources.some(s => s.originalIndex === i)
+          ? { ...r, usedInMetaSummary: true }
+          : r
+      );
+      // Only keep the selected summaries and the new meta-summary
+      const toKeep = updated.filter((r, i) => sources.some(s => s.originalIndex === i));
+      const finalReports = [...toKeep, metaSummary];
+      setActiveReportIndex(finalReports.length - 1);
+      return finalReports;
+    });
+    setSelectedSummaries([]);
+  };
+
   return (
     <main className="container mx-auto px-4 py-8 max-w-3xl">
       <h1 className="text-3xl font-bold mb-8 text-center">CoinsDash</h1>
@@ -161,28 +205,49 @@ export default function Home() {
             <div className="flex flex-wrap gap-2">
             {reports.map((report, index) => (
               (hiddenIndices.has(index) && !report.isSummary) ? null : (
-                <button
-                  key={index}
-                  onClick={() => setActiveReportIndex(index)}
-                  className={`px-4 py-2 rounded-t-lg transition-colors ${
-                    index === activeReportIndex
-                      ? 'bg-white text-blue-600 border border-gray-300 border-b-0 font-medium'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {report.fileName}
-                </button>
+                <div key={index} className="relative inline-block">
+                  {report.isSummary && !report.isMetaSummary && (
+                    <input
+                      type="checkbox"
+                      checked={selectedSummaries.includes(index)}
+                      onChange={() => handleToggleSummarySelection(index)}
+                      className="absolute left-0 top-0 h-4 w-4 mt-2 ml-2 z-10"
+                      title="Select for combined summary"
+                    />
+                  )}
+                  <button
+                    onClick={() => setActiveReportIndex(index)}
+                    className={`px-4 py-2 rounded-t-lg transition-colors ${
+                      index === activeReportIndex
+                        ? 'bg-white text-blue-600 border border-gray-300 border-b-0 font-medium'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    style={{ paddingLeft: report.isSummary && !report.isMetaSummary ? '2rem' : undefined }}
+                  >
+                    {report.fileName}
+                  </button>
+                </div>
               )
             ))}
             </div>
             
             {/* Summary button - only show when 2 or more reports are loaded */}
-            {reports.length >= 2 && (
+            {reports.filter(r => !r.isSummary && !r.usedInSummary).length >= 2 && (
               <button
                 onClick={handleGenerateSummary}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
                 Generate Summary
+              </button>
+            )}
+            {/* Meta-summary button - only show when 2+ summaries exist and are not yet combined */}
+            {reports.filter(r => r.isSummary && !r.isMetaSummary && !r.usedInMetaSummary).length >= 2 && (
+              <button
+                onClick={handleGenerateMetaSummary}
+                className="px-4 py-2 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors"
+                disabled={selectedSummaries.length < 2}
+              >
+                Generate Overall Summary
               </button>
             )}
           </div>
