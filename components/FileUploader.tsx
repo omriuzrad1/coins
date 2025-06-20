@@ -37,7 +37,7 @@ export default function FileUploader({ onData, onError }: FileUploaderProps) {
           const match = fileName.match(/^[^0-9]*/);
           if (match) {
             // Remove trailing underscores or non-letter chars
-            displayName = match[0].replace(/[_\W]+$/, '');
+            displayName = match[0].replace(/[_\W]+$/, '').replace(/_/g, ' ');
           }
         }
         const balanceTableIndex = fileName.indexOf("balance-table");
