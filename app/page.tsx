@@ -15,6 +15,7 @@ type Report = {
   countries?: string[];
   sources?: { name: string; originalIndex: number }[];
   isSummary?: boolean;
+  partOfSummary?: boolean;
 };
 
 export default function Home() {
@@ -73,19 +74,20 @@ export default function Home() {
     // Hide all original tabs
     setHiddenIndices(new Set(sources.map(s => s.originalIndex)));
 
-    // Create a new summary report
-    const summaryReport = {
-      fileName: trimmedPrefix || "Combined Summary",
-      data: combinedData,
-      countries,
-      sources,
-      isSummary: true
-    };
-
+    // Mark all source reports as partOfSummary
     setReports(prevReports => {
-      const newReports = [...prevReports, summaryReport];
-      setActiveReportIndex(newReports.length - 1);
-      return newReports;
+      const newReports = prevReports.map((r, i) => sources.some(s => s.originalIndex === i) ? { ...r, partOfSummary: true } : r);
+      // Create a new summary report
+      const summaryReport = {
+        fileName: trimmedPrefix || "Combined Summary",
+        data: combinedData,
+        countries,
+        sources,
+        isSummary: true
+      };
+      const finalReports = [...newReports, summaryReport];
+      setActiveReportIndex(finalReports.length - 1);
+      return finalReports;
     });
   };
 
@@ -111,6 +113,23 @@ export default function Home() {
       return newSet;
     });
     setActiveReportIndex(index);
+  };
+
+  // Handler to hide a report and switch to summary
+  const handleHideReport = () => {
+    // Hide the current tab and switch to the summary tab
+    setHiddenIndices(prev => {
+      const newSet = new Set(prev);
+      newSet.add(activeReportIndex);
+      // Find the summary index
+      const summaryIdx = reports.findIndex(r => r.isSummary);
+      if (summaryIdx !== -1) {
+        setActiveReportIndex(summaryIdx);
+      } else {
+        setActiveReportIndex(0);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -160,16 +179,25 @@ export default function Home() {
             <Card className="border rounded-tl-none p-6 bg-white">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Report: {activeReport.fileName}</h2>
-                <button
-                  onClick={() => {
-                    const newReports = reports.filter((_, i) => i !== activeReportIndex);
-                    setReports(newReports);
-                    setActiveReportIndex(Math.min(activeReportIndex, newReports.length - 1));
-                  }}
-                  className="text-red-500 hover:text-red-700 text-sm"
-                >
-                  Remove Report
-                </button>
+                {activeReport.partOfSummary ? (
+                  <button
+                    onClick={handleHideReport}
+                    className="text-yellow-600 hover:text-yellow-800 text-sm"
+                  >
+                    Hide Report
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const newReports = reports.filter((_, i) => i !== activeReportIndex);
+                      setReports(newReports);
+                      setActiveReportIndex(Math.min(activeReportIndex, newReports.length - 1));
+                    }}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Remove Report
+                  </button>
+                )}
               </div>
               
               <div className="flex items-center mb-4">
